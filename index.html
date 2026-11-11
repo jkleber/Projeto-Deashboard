@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel de Atendimentos Agile</title>
+  <link rel="stylesheet" href="style.css?v=line-tooltip-edge-position">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- SheetJS (para exportar XLSX) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- jsPDF (para exportar PDF) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <i data-lucide="layout-dashboard"></i>
+          <span>AGILE</span>
+        </div>
+        <button id="btn-toggle-sidebar" class="sidebar-toggle" type="button" aria-label="Recolher menu lateral" aria-expanded="true" aria-controls="sidebar-nav" title="Recolher menu lateral">
+          <i data-lucide="menu"></i>
+        </button>
+      </div>
+      <nav class="nav-menu" id="sidebar-nav">
+        <a href="#" class="active"><i data-lucide="grid"></i><span>Dashboard</span></a>
+        <a href="#tabela-sec"><i data-lucide="table"></i><span>Tabela</span></a>
+      </nav>
+      <div class="sync-status">
+        <span class="pulse-dot"></span>
+        <span id="sync-text">Conectado à Planilha</span>
+      </div>
+    </aside>
+
+    <!-- Conteúdo Principal -->
+    <main class="main-content" id="dashboard-content">
+      <!-- Header -->
+      <header class="top-header">
+        <div class="title-area">
+          <h1>Dashboard de Atendimentos</h1>
+        </div>
+        
+        <!-- Configuração da Planilha Google -->
+        <div class="sheet-config">
+          <input type="text" id="sheet-id-input" placeholder="Cole a URL ou ID da Planilha do Google..." />
+          <button id="btn-load-sheet" class="btn-primary"><i data-lucide="refresh-cw"></i> Sincronizar</button>
+        </div>
+      </header>
+
+      <!-- Barra de Filtros e Exportação -->
+      <section class="controls-bar">
+        <div class="filters-group">
+          <div class="filter-item">
+            <label><i data-lucide="calendar"></i> Data Inicial</label>
+            <input type="date" id="date-start">
+          </div>
+          <div class="filter-item">
+            <label><i data-lucide="calendar"></i> Data Final</label>
+            <input type="date" id="date-end">
+          </div>
+          <div class="filter-item">
+            <label><i data-lucide="cpu"></i> Sistema</label>
+            <select id="filter-system">
+              <option value="">Todos os Sistemas</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label><i data-lucide="map-pin"></i> Local (Prédio/Sala)</label>
+            <select id="filter-location">
+              <option value="">Todos os Locais</option>
+            </select>
+          </div>
+          <button id="btn-clear-filters" class="btn-secondary" title="Limpar Filtros"><i data-lucide="filter-x"></i></button>
+        </div>
+
+        <div class="actions-group">
+          <button id="btn-export-excel" class="btn-export excel"><i data-lucide="file-spreadsheet"></i> Excel</button>
+          <button id="btn-export-pdf" class="btn-export pdf"><i data-lucide="file-text"></i> PDF</button>
+        </div>
+      </section>
+
+      <!-- KPI Cards -->
+      <section class="kpi-grid">
+        <div class="kpi-card orange">
+          <div class="kpi-info">
+            <span class="kpi-title">Total de Atendimentos</span>
+            <h2 id="kpi-total">0</h2>
+          </div>
+          <div class="kpi-icon"><i data-lucide="headphones"></i></div>
+        </div>
+
+        <div class="kpi-card purple">
+          <div class="kpi-info">
+            <span class="kpi-title">Sistemas Afetados</span>
+            <h2 id="kpi-systems">0</h2>
+          </div>
+          <div class="kpi-icon"><i data-lucide="layers"></i></div>
+        </div>
+
+        <div class="kpi-card blue">
+          <div class="kpi-info">
+            <span class="kpi-title">Locais Atendidos</span>
+            <h2 id="kpi-locations">0</h2>
+          </div>
+          <div class="kpi-icon"><i data-lucide="building-2"></i></div>
+        </div>
+
+        <div class="kpi-card yellow">
+          <div class="kpi-info">
+            <span class="kpi-title">Pessoas Atendidas</span>
+            <h2 id="kpi-people">0</h2>
+          </div>
+          <div class="kpi-icon"><i data-lucide="users"></i></div>
+        </div>
+      </section>
+
+      <!-- Gráficos de Linha e Donut -->
+      <section class="charts-grid">
+        <div class="chart-card line-chart-container">
+          <h3>Evolução dos Atendimentos por Data</h3>
+          <div class="line-chart-wrapper">
+            <div class="line-chart-tooltip" id="timeSeriesTooltip" role="status" aria-live="polite"></div>
+            <canvas id="timeSeriesChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card donut-chart-container">
+          <h3>Atendimentos por Sistema</h3>
+          <div class="system-chart-tooltip" id="systemChartTooltip" role="status" aria-live="polite"></div>
+          <div class="donut-chart-wrapper">
+            <canvas id="systemChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Gráfico de Barras Horizontais por Local (Alinhado na Grade) -->
+      <section class="charts-grid">
+        <div class="chart-card" style="grid-column: 1 / -1;">
+          <h3>Demandas de Atendimento por Local (Salas do Edifício)</h3>
+          <div style="height: 380px; position: relative;">
+            <canvas id="locationChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tabela de Dados Registrados -->
+      <section class="table-card" id="tabela-sec">
+        <div class="table-header">
+          <h3>Registros de Atendimento</h3>
+          <span id="table-count-badge" class="badge">0 registros encontrados</span>
+        </div>
+        <div class="table-responsive">
+          <table id="data-table">
+            <thead>
+              <tr>
+                <th>Referência</th>
+                <th>Data</th>
+                <th>Item (Sistema)</th>
+                <th>Salas do Edifício (Local)</th>
+                <th>Nome afetado</th>
+              </tr>
+            </thead>
+            <tbody id="table-body">
+              <!-- Preenchido via JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js?v=animate-on-new-data"></script>
+</body>
+</html>
