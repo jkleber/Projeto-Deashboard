@@ -31,6 +31,24 @@ document.addEventListener("DOMContentLoaded", () => {
   lucide.createIcons();
 
   const sidebar = document.querySelector(".sidebar");
+  const navLinks = document.querySelectorAll("#sidebar-nav a");
+  const updateActiveNav = (href = window.location.hash === "#tabela-sec" ? "#tabela-sec" : "#") => {
+    navLinks.forEach(link => {
+      const isActive = link.getAttribute("href") === href;
+      link.classList.toggle("active", isActive);
+      if (isActive) {
+        link.setAttribute("aria-current", "page");
+      } else {
+        link.removeAttribute("aria-current");
+      }
+    });
+  };
+  navLinks.forEach(link => {
+    link.addEventListener("click", () => updateActiveNav(link.getAttribute("href")));
+  });
+  window.addEventListener("hashchange", () => updateActiveNav());
+  updateActiveNav();
+
   const sidebarToggle = document.getElementById("btn-toggle-sidebar");
   sidebarToggle.addEventListener("click", () => {
     const isCollapsed = sidebar.classList.toggle("collapsed");
@@ -109,19 +127,14 @@ async function fetchGoogleSheetData(isSilent = false) {
     return;
   }
 
-  localStorage.setItem("agile_sheet_url", input);
-
-  let sheetId = input;
-  if (input.includes("google.com/spreadsheets")) {
-    const match = input.match(/\/d\/([a-zA-Z0-9-_]+)/);
-    if (match && match[1]) {
-      sheetId = match[1];
-    }
+  const csvUrl = getGoogleSheetCsvUrl(input);
+  if (!csvUrl) {
+    document.getElementById("sync-text").innerText = "URL da planilha inválida";
+    if (!isSilent) alert("Informe um ID válido ou uma URL HTTPS de uma planilha do Google.");
+    return;
   }
 
-  const gidMatch = input.match(/[?&#]gid=(\d+)/);
-  const gidParameter = gidMatch ? `&gid=${gidMatch[1]}` : "";
-  const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv${gidParameter}`;
+  localStorage.setItem("agile_sheet_url", input);
 
   try {
     if (!isSilent) document.getElementById("sync-text").innerText = "Sincronizando...";
@@ -148,6 +161,30 @@ async function fetchGoogleSheetData(isSilent = false) {
     if (!isSilent) alert("Falha ao carregar os dados. Verifique se a planilha está configurada como 'Qualquer pessoa com o link pode ver' (Modo Leitor).");
     document.getElementById("sync-text").innerText = "Erro na Conexão";
   }
+}
+
+function getGoogleSheetCsvUrl(input) {
+  let sheetId = input;
+  if (input.toLowerCase().includes("docs.google.com")) {
+    let spreadsheetUrl;
+    try {
+      spreadsheetUrl = new URL(/^[a-z][a-z\d+.-]*:\/\//i.test(input) ? input : `https://${input}`);
+    } catch {
+      return "";
+    }
+
+    const match = spreadsheetUrl.pathname.match(/^\/spreadsheets\/(?:u\/\d+\/)?d\/([a-zA-Z0-9_-]+)(?:\/|$)/);
+    if (spreadsheetUrl.protocol !== "https:" || spreadsheetUrl.hostname !== "docs.google.com" || !match) {
+      return "";
+    }
+    sheetId = match[1];
+  } else if (!/^[a-zA-Z0-9_-]+$/.test(input)) {
+    return "";
+  }
+
+  const gidMatch = input.match(/[?&#]gid=(\d+)/);
+  const gidParameter = gidMatch ? `&gid=${gidMatch[1]}` : "";
+  return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv${gidParameter}`;
 }
 
 function normalizeDateValue(value) {
@@ -213,13 +250,47 @@ function getForumName(item) {
 }
 
 function parseCSV(text) {
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-  if (lines.length < 2) return [];
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let insideQuotes = false;
+  const csvText = text.replace(/^\uFEFF/, "");
 
-  const cleanCell = cell => cell.replace(/^['"]|['"]$/g, '').trim();
+  for (let index = 0; index < csvText.length; index += 1) {
+    const character = csvText[index];
 
-  return lines.slice(1).map(row => {
-    const cols = row.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(cleanCell);
+    if (insideQuotes) {
+      if (character === '"' && csvText[index + 1] === '"') {
+        cell += '"';
+        index += 1;
+      } else if (character === '"') {
+        insideQuotes = false;
+      } else {
+        cell += character;
+      }
+    } else if (character === '"' && cell.length === 0) {
+      insideQuotes = true;
+    } else if (character === ",") {
+      row.push(cell.trim());
+      cell = "";
+    } else if (character === "\n" || character === "\r") {
+      row.push(cell.trim());
+      if (row.some(value => value !== "")) rows.push(row);
+      row = [];
+      cell = "";
+      if (character === "\r" && csvText[index + 1] === "\n") index += 1;
+    } else {
+      cell += character;
+    }
+  }
+
+  if (insideQuotes) throw new Error("CSV inválido: campo entre aspas não foi finalizado.");
+
+  row.push(cell.trim());
+  if (row.some(value => value !== "")) rows.push(row);
+  if (rows.length < 2) return [];
+
+  return rows.slice(1).map(cols => {
 
     const sala = cols[3] || "Não especificado";
 
@@ -318,18 +389,32 @@ function renderTable() {
   const tbody = document.getElementById("table-body");
   document.getElementById("table-count-badge").innerText = `${filteredData.length} registros encontrados`;
 
-  tbody.innerHTML = getSortedTableData(filteredData).map(row => {
+  const tableRows = getSortedTableData(filteredData).map(row => {
     const dateFormatted = row.data ? row.data.split('-').reverse().join('/') : '-';
-    return `
-      <tr>
-        <td><strong>${row.referencia}</strong></td>
-        <td>${dateFormatted}</td>
-        <td><span class="badge-item">${row.item}</span></td>
-        <td>${row.sala}</td>
-        <td>${row.nome}</td>
-      </tr>
-    `;
-  }).join('');
+    const tableRow = document.createElement("tr");
+    const referenceCell = document.createElement("td");
+    const reference = document.createElement("strong");
+    reference.textContent = row.referencia;
+    referenceCell.append(reference);
+
+    const itemCell = document.createElement("td");
+    const itemBadge = document.createElement("span");
+    itemBadge.className = "badge-item";
+    itemBadge.textContent = row.item;
+    itemCell.append(itemBadge);
+
+    const dateCell = document.createElement("td");
+    dateCell.textContent = dateFormatted;
+    const locationCell = document.createElement("td");
+    locationCell.textContent = row.sala;
+    const nameCell = document.createElement("td");
+    nameCell.textContent = row.nome;
+
+    tableRow.append(referenceCell, dateCell, itemCell, locationCell, nameCell);
+
+    return tableRow;
+  });
+  tbody.replaceChildren(...tableRows);
 }
 
 function getSortedTableData(rows) {
@@ -378,10 +463,10 @@ function updateTableSortControls() {
 }
 
 function renderCharts(animateCharts = false) {
-  const systemCounts = {};
+  const systemCounts = Object.create(null);
   filteredData.forEach(d => systemCounts[d.item] = (systemCounts[d.item] || 0) + 1);
 
-  const dateCounts = {};
+  const dateCounts = Object.create(null);
   filteredData.forEach(d => {
     const dateLabel = d.data ? d.data.split('-').reverse().join('/') : 'S/D';
     dateCounts[dateLabel] = (dateCounts[dateLabel] || 0) + 1;
@@ -396,7 +481,7 @@ function renderCharts(animateCharts = false) {
   const seriesLabels = dateEntries.map(([date]) => date);
   const seriesValues = dateEntries.map(([, value]) => value);
 
-  const locationCounts = {};
+  const locationCounts = Object.create(null);
   filteredData.forEach(d => {
     const forumName = getForumName(d);
     locationCounts[forumName] = (locationCounts[forumName] || 0) + 1;
@@ -581,7 +666,7 @@ function renderCharts(animateCharts = false) {
             minRotation: 0,
             autoSkip: true,
             maxTicksLimit: 10,
-            callback: function(value, index, ticks) {
+            callback: function(value) {
               const label = this.getLabelForValue(value);
               if (!label) return '';
               if (label.includes('/')) {
@@ -608,12 +693,6 @@ function renderCharts(animateCharts = false) {
   });
 
   const ctxLocation = document.getElementById('locationChart').getContext('2d');
-  const locationContainer = document.getElementById('locationChart').parentElement;
-  if (locationContainer) {
-    locationContainer.style.height = '360px';
-    locationContainer.style.maxHeight = '360px';
-  }
-
   locationChartInstance = new Chart(ctxLocation, {
     type: 'bar',
     data: {
@@ -661,9 +740,6 @@ function renderCharts(animateCharts = false) {
     }
   });
 
-  if (locationChartInstance) {
-    locationChartInstance.resize();
-  }
 }
 
 function exportToExcel() {
