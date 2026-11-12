@@ -1,8 +1,6 @@
 :root {
-  --bg-primary: #eef4fa;
   --bg-sidebar: #0f172a;
   --sidebar-alt: #111f2f;
-  --card-bg: #ffffff;
   --text-primary: #1f2937;
   --text-muted: #64748b;
   --border-color: #dfe7f1;
@@ -193,7 +191,6 @@ body {
 }
 
 .title-area h1 { font-size: 1.8rem; font-weight: 700; }
-.title-area p { color: var(--text-muted); font-size: 0.9rem; }
 
 .sheet-config {
   display: flex;
@@ -439,26 +436,6 @@ body {
   overflow: hidden;
 }
 
-/* Gráfico de Barras com altura ajustada para caber os rótulos longos */
-.charts-grid-single {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 20px;
-  margin-bottom: 25px;
-}
-
-.bar-chart-container {
-  position: relative;
-  height: 420px; /* Altura aumentada para acomodar os nomes dos locais inclinados */
-  display: flex;
-  flex-direction: column;
-}
-
-.bar-chart-container canvas {
-  flex: 1;
-  max-height: 360px;
-}
-
 /* Tabela */
 .table-card {
   background: rgba(255,255,255,0.97);
@@ -513,6 +490,33 @@ th {
   position: sticky;
   top: 0;
   z-index: 10;
+}
+
+.table-sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.table-sort-button:hover {
+  text-decoration: underline;
+}
+
+.table-sort-button:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.sort-indicator {
+  min-width: 1em;
+  text-align: center;
 }
 
 td {

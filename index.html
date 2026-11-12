@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel de Atendimentos Agile</title>
-  <link rel="stylesheet" href="style.css?v=line-tooltip-edge-position">
+  <link rel="stylesheet" href="style.css?v=table-sort-20261112">
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Lucide Icons -->
@@ -157,11 +157,23 @@
           <table id="data-table">
             <thead>
               <tr>
-                <th>Referência</th>
-                <th>Data</th>
-                <th>Item (Sistema)</th>
-                <th>Salas do Edifício (Local)</th>
-                <th>Nome afetado</th>
+                <th scope="col">Referência</th>
+                <th scope="col" aria-sort="ascending">
+                  <button class="table-sort-button" type="button" data-sort-key="data" data-sort-label="Data">
+                    Data <span class="sort-indicator" aria-hidden="true">↑</span>
+                  </button>
+                </th>
+                <th scope="col" aria-sort="none">
+                  <button class="table-sort-button" type="button" data-sort-key="item" data-sort-label="Sistema">
+                    Item (Sistema) <span class="sort-indicator" aria-hidden="true">↕</span>
+                  </button>
+                </th>
+                <th scope="col" aria-sort="none">
+                  <button class="table-sort-button" type="button" data-sort-key="sala" data-sort-label="Local">
+                    Salas do Edifício (Local) <span class="sort-indicator" aria-hidden="true">↕</span>
+                  </button>
+                </th>
+                <th scope="col">Nome afetado</th>
               </tr>
             </thead>
             <tbody id="table-body">
@@ -173,6 +185,6 @@
     </main>
   </div>
 
-  <script src="script.js?v=animate-on-new-data"></script>
+  <script src="script.js?v=table-sort-20261112"></script>
 </body>
 </html>

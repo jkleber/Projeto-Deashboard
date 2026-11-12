@@ -25,6 +25,7 @@ let lineChartInstance = null;
 let donutChartInstance = null;
 let locationChartInstance = null;
 let temporaryEndDate = null;
+let tableSort = { key: "data", direction: "asc" };
 
 document.addEventListener("DOMContentLoaded", () => {
   lucide.createIcons();
@@ -81,6 +82,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("btn-export-excel").addEventListener("click", exportToExcel);
   document.getElementById("btn-export-pdf").addEventListener("click", exportToPDF);
+  document.querySelectorAll(".table-sort-button").forEach(button => {
+    button.addEventListener("click", () => {
+      if (tableSort.key === button.dataset.sortKey) {
+        tableSort.direction = tableSort.direction === "asc" ? "desc" : "asc";
+      } else {
+        tableSort = { key: button.dataset.sortKey, direction: "asc" };
+      }
+
+      updateTableSortControls();
+      renderTable();
+    });
+  });
+  updateTableSortControls();
 
   setInterval(() => {
     const sheetInput = document.getElementById("sheet-id-input").value;
@@ -105,7 +119,9 @@ async function fetchGoogleSheetData(isSilent = false) {
     }
   }
 
-  const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv`;
+  const gidMatch = input.match(/[?&#]gid=(\d+)/);
+  const gidParameter = gidMatch ? `&gid=${gidMatch[1]}` : "";
+  const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv${gidParameter}`;
 
   try {
     if (!isSilent) document.getElementById("sync-text").innerText = "Sincronizando...";
@@ -294,10 +310,15 @@ function renderDashboard(animateCharts = false) {
   document.getElementById("kpi-locations").innerText = new Set(filteredData.map(getForumName)).size;
   document.getElementById("kpi-people").innerText = new Set(filteredData.map(d => d.nome)).size;
 
+  renderTable();
+  renderCharts(animateCharts);
+}
+
+function renderTable() {
   const tbody = document.getElementById("table-body");
   document.getElementById("table-count-badge").innerText = `${filteredData.length} registros encontrados`;
-  
-  tbody.innerHTML = filteredData.map(row => {
+
+  tbody.innerHTML = getSortedTableData(filteredData).map(row => {
     const dateFormatted = row.data ? row.data.split('-').reverse().join('/') : '-';
     return `
       <tr>
@@ -309,8 +330,51 @@ function renderDashboard(animateCharts = false) {
       </tr>
     `;
   }).join('');
+}
 
-  renderCharts(animateCharts);
+function getSortedTableData(rows) {
+  return [...rows].sort((rowA, rowB) => {
+    const valueA = tableSort.key === "data"
+      ? normalizeDateValue(rowA.data)
+      : String(rowA[tableSort.key] || "").trim();
+    const valueB = tableSort.key === "data"
+      ? normalizeDateValue(rowB.data)
+      : String(rowB[tableSort.key] || "").trim();
+
+    if (!valueA || !valueB) {
+      if (!valueA && !valueB) return 0;
+      return valueA ? -1 : 1;
+    }
+
+    const comparison = tableSort.key === "data"
+      ? valueA.localeCompare(valueB)
+      : valueA.localeCompare(valueB, "pt-BR", { sensitivity: "base", numeric: true });
+
+    return tableSort.direction === "asc" ? comparison : -comparison;
+  });
+}
+
+function updateTableSortControls() {
+  document.querySelectorAll(".table-sort-button").forEach(button => {
+    const isActive = button.dataset.sortKey === tableSort.key;
+    const directionLabel = tableSort.direction === "asc" ? "crescente" : "decrescente";
+    const nextDirectionLabel = tableSort.direction === "asc" ? "decrescente" : "crescente";
+    const indicator = button.querySelector(".sort-indicator");
+
+    button.closest("th").setAttribute(
+      "aria-sort",
+      isActive ? (tableSort.direction === "asc" ? "ascending" : "descending") : "none"
+    );
+    indicator.textContent = isActive
+      ? (tableSort.direction === "asc" ? "↑" : "↓")
+      : "↕";
+    button.setAttribute(
+      "aria-label",
+      isActive
+        ? `${button.dataset.sortLabel} em ordem ${directionLabel}. Clique para ordenar em ordem ${nextDirectionLabel}.`
+        : `Ordenar por ${button.dataset.sortLabel} em ordem crescente`
+    );
+  });
 }
 
 function renderCharts(animateCharts = false) {
