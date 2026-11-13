@@ -717,8 +717,13 @@ tr:hover { background-color: #f1f5f9; }
   }
 
   .top-header {
+    position: sticky;
+    top: 0;
+    z-index: 15;
     align-items: stretch;
     margin-bottom: 18px;
+    padding: 12px 0;
+    background: linear-gradient(180deg, #f3f7fb 0%, #edf3f9 100%);
   }
 
   .title-area h1 {
