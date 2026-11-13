@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel de Atendimentos Agile</title>
-  <link rel="stylesheet" href="style.css?v=mobile-sidebar-toggle-20261112">
+  <link rel="stylesheet" href="style.css?v=hidden-sheet-id-20261113">
   <!-- Chart.js -->
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" integrity="sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0" crossorigin="anonymous"></script>
   <!-- Lucide Icons -->
@@ -21,7 +21,7 @@
       <div class="sidebar-header">
         <div class="logo">
           <i data-lucide="layout-dashboard"></i>
-          <span>AGILE</span>
+          <span>CAAT</span>
         </div>
         <button id="btn-toggle-sidebar" class="sidebar-toggle" type="button" aria-label="Recolher menu lateral" aria-expanded="true" aria-controls="sidebar-nav" title="Recolher menu lateral">
           <i data-lucide="menu"></i>
@@ -31,9 +31,14 @@
         <a href="#" class="active" aria-current="page"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a>
         <a href="#tabela-sec"><i data-lucide="clipboard-list"></i><span>Tabela</span></a>
       </nav>
-      <div class="sync-status">
-        <span class="pulse-dot"></span>
-        <span id="sync-text">Conectado à Planilha</span>
+      <div class="sidebar-footer">
+        <div class="sync-status">
+          <span class="pulse-dot"></span>
+          <span id="sync-text">Conectado à Planilha</span>
+        </div>
+        <button id="btn-load-sheet" class="btn-primary sidebar-sync-button" type="button" aria-label="Sincronizar planilha" title="Sincronizar planilha">
+          <i data-lucide="refresh-cw"></i><span>Sincronizar</span>
+        </button>
       </div>
     </aside>
 
@@ -42,13 +47,8 @@
       <!-- Header -->
       <header class="top-header">
         <div class="title-area">
+          <p class="department-name">Coordenadoria de Apoio à Área de Tecnologia</p>
           <h1>Dashboard de Atendimentos</h1>
-        </div>
-        
-        <!-- Configuração da Planilha Google -->
-        <div class="sheet-config">
-          <input type="text" id="sheet-id-input" placeholder="Cole a URL ou ID da Planilha do Google..." />
-          <button id="btn-load-sheet" class="btn-primary"><i data-lucide="refresh-cw"></i> Sincronizar</button>
         </div>
       </header>
 
@@ -185,6 +185,6 @@
     </main>
   </div>
 
-  <script defer src="script.js?v=review-final-20261112"></script>
+  <script defer src="script.js?v=hidden-sheet-id-20261113"></script>
 </body>
 </html>

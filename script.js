@@ -1,3 +1,6 @@
+// ID da planilha ativa: altere esta constante para trocar de planilha.
+const GOOGLE_SHEET_ID = "133sREx7f2L3IZJrJE-LGFJ3LdlRAS_6q";
+
 const defaultData = [
   { referencia: "1044772", data: "2026-10-13", item: "SISBAJUD", sala: "FORUM_DESEMBARGADOR_MIGUEL_SEABRA_FAGUNDES-", nome: "Luanna Vitória Silva Gomes" },
   { referencia: "S1725401", data: "2026-10-13", item: "SISTEMA_LICITACAO", sala: "FORUM_DESEMBARGADOR_MIGUEL_SEABRA_FAGUNDES-5_VARA_CIVEL", nome: "Patricia Albernaz Aquino" },
@@ -26,6 +29,7 @@ let donutChartInstance = null;
 let locationChartInstance = null;
 let temporaryEndDate = null;
 let tableSort = { key: "data", direction: "asc" };
+let hasInitializedDateRange = false;
 
 document.addEventListener("DOMContentLoaded", () => {
   lucide.createIcons();
@@ -58,13 +62,14 @@ document.addEventListener("DOMContentLoaded", () => {
     sidebarToggle.title = label;
   });
 
-  const savedSheetInput = localStorage.getItem("agile_sheet_url");
-  if (savedSheetInput) {
-    document.getElementById("sheet-id-input").value = savedSheetInput;
+  localStorage.removeItem("agile_sheet_url");
+  setInitialDateRange(rawData);
+  populateDropdowns();
+  renderDashboard();
+  if (GOOGLE_SHEET_ID) {
     fetchGoogleSheetData(true);
   } else {
-    populateDropdowns();
-    renderDashboard();
+    hasInitializedDateRange = true;
   }
 
   const dateStartInput = document.getElementById("date-start");
@@ -75,7 +80,10 @@ document.addEventListener("DOMContentLoaded", () => {
     applyFilters();
   }
 
-  dateStartInput.addEventListener("change", syncDateRange);
+  dateStartInput.addEventListener("change", () => {
+    hasInitializedDateRange = true;
+    syncDateRange();
+  });
   dateEndInput.addEventListener("focus", () => {
     if (!dateStartInput.value || dateEndInput.value) return;
 
@@ -83,6 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
     dateEndInput.value = temporaryEndDate;
   });
   dateEndInput.addEventListener("change", () => {
+    hasInitializedDateRange = true;
     temporaryEndDate = null;
     applyFilters();
   });
@@ -115,26 +124,17 @@ document.addEventListener("DOMContentLoaded", () => {
   updateTableSortControls();
 
   setInterval(() => {
-    const sheetInput = document.getElementById("sheet-id-input").value;
-    if (sheetInput) fetchGoogleSheetData(true);
+    if (GOOGLE_SHEET_ID) fetchGoogleSheetData(true);
   }, 30000);
 });
 
 async function fetchGoogleSheetData(isSilent = false) {
-  const input = document.getElementById("sheet-id-input").value.trim();
-  if (!input) {
-    if (!isSilent) alert("Por favor, insira o ID da planilha ou a URL de compartilhamento.");
-    return;
-  }
-
-  const csvUrl = getGoogleSheetCsvUrl(input);
+  const csvUrl = getGoogleSheetCsvUrl(GOOGLE_SHEET_ID);
   if (!csvUrl) {
     document.getElementById("sync-text").innerText = "URL da planilha inválida";
-    if (!isSilent) alert("Informe um ID válido ou uma URL HTTPS de uma planilha do Google.");
+    if (!isSilent) alert("O ID configurado para a planilha é inválido.");
     return;
   }
-
-  localStorage.setItem("agile_sheet_url", input);
 
   try {
     if (!isSilent) document.getElementById("sync-text").innerText = "Sincronizando...";
@@ -145,11 +145,18 @@ async function fetchGoogleSheetData(isSilent = false) {
     const parsed = parseCSV(csvText);
 
     if (parsed.length > 0) {
-      if (!areDataRowsEqual(rawData, parsed)) {
+      const shouldInitializeDateRange = !hasInitializedDateRange;
+      const dataChanged = !areDataRowsEqual(rawData, parsed);
+      if (dataChanged) {
         rawData = parsed;
         populateDropdowns();
-        applyFilters(true);
       }
+
+      if (!hasInitializedDateRange) {
+        hasInitializedDateRange = setInitialDateRange(parsed);
+      }
+
+      if (dataChanged || (shouldInitializeDateRange && hasInitializedDateRange)) applyFilters(true);
     }
     
     if (!isSilent) {
@@ -309,6 +316,27 @@ function areDataRowsEqual(currentRows, nextRows) {
   const fields = ["referencia", "data", "item", "sala", "forum", "nome"];
   return currentRows.length === nextRows.length
     && currentRows.every((row, index) => fields.every(field => row[field] === nextRows[index][field]));
+}
+
+function setInitialDateRange(data = rawData) {
+  const dates = data
+    .map(item => normalizeDateValue(item.data))
+    .filter(date => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+
+      const parsedDate = new Date(`${date}T00:00:00Z`);
+      return !Number.isNaN(parsedDate.getTime()) && parsedDate.toISOString().slice(0, 10) === date;
+    })
+    .sort();
+
+  if (dates.length === 0) return false;
+
+  const startInput = document.getElementById("date-start");
+  const endInput = document.getElementById("date-end");
+  startInput.value = dates[0];
+  endInput.value = dates[dates.length - 1];
+  endInput.min = dates[0];
+  return true;
 }
 
 function populateDropdowns() {
