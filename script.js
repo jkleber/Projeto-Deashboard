@@ -1,29 +1,8 @@
 // ID da planilha ativa: altere esta constante para trocar de planilha.
 const GOOGLE_SHEET_ID = "133sREx7f2L3IZJrJE-LGFJ3LdlRAS_6q";
 
-const defaultData = [
-  { referencia: "1044772", data: "2026-10-13", item: "SISBAJUD", sala: "FORUM_DESEMBARGADOR_MIGUEL_SEABRA_FAGUNDES-", nome: "Luanna Vitória Silva Gomes" },
-  { referencia: "S1725401", data: "2026-10-13", item: "SISTEMA_LICITACAO", sala: "FORUM_DESEMBARGADOR_MIGUEL_SEABRA_FAGUNDES-5_VARA_CIVEL", nome: "Patricia Albernaz Aquino" },
-  { referencia: "S1725403", data: "2026-10-13", item: "SISTEMA_LICITACAO", sala: "FORUM_DESEMBARGADOR_MIGUEL_SEABRA_FAGUNDES-22_VARA_CIVEL", nome: "Natercia Maria Sena de Almeida" },
-  { referencia: "S1725415", data: "2026-10-13", item: "SISBAJUD", sala: "FORUM_FAZENDARIO-3_VARA_DA_FAZENDA_PUBLICA", nome: "Simone Pereira da Silva" },
-  { referencia: "S1725423", data: "2026-10-13", item: "SISBAJUD", sala: "FORUM_FAZENDARIO-5_JUIZADO_ESPECIAL_DA_FAZENDA_PUBLICA", nome: "Lilian Patrícia de Azevedo Marinho" },
-  { referencia: "S1725443", data: "2026-10-13", item: "SISBAJUD", sala: "FORUM_FAZENDARIO-5_VARA_DA_FAZENDA_PUBLICA", nome: "Airton Pinheiro" },
-  { referencia: "S1725450", data: "2026-10-13", item: "RENAJUD", sala: "FÓRUM_DA_COMARCA_DE_CURRAIS_NOVOS-2_VARA", nome: "Ricardo Antonio Menezes Cabral Fagundes" },
-  { referencia: "S1725470", data: "2026-10-13", item: "SCA", sala: "FÓRUM_DA_COMARCA_DE_CURRAIS_NOVOS-2_VARA", nome: "Ricardo Antonio Menezes Cabral Fagundes" },
-  { referencia: "S1725544", data: "2026-10-13", item: "SISTEMA_LICITACAO", sala: "FÓRUM_DA_COMARCA_DE_ACARI-VARA_UNICA", nome: "Aristoteles Magno Lopes Rodrigues" },
-  { referencia: "S1725561", data: "2026-10-13", item: "SISBAJUD", sala: "FORUM_JESPS-3_JUIZADO_ESPECIAL_CIVEL_CENTRAL", nome: "Alice Dantas Barros" },
-  { referencia: "S1725724", data: "2026-10-13", item: "SISBAJUD", sala: "FORUM_FAZENDARIO-3_JUIZADO_ESPECIAL_DA_FAZENDA_PUBLICA", nome: "Daliana de Araújo Matos" },
-  { referencia: "S1725777", data: "2026-10-13", item: "SISTEMA_LICITACAO", sala: "FORUM_DESEMBARGADOR_MIGUEL_SEABRA_FAGUNDES-SECRETARIA_UNIFICADA_CRIMINAL_3A11", nome: "Ricardo Sergio Reboucas de Carvalho" },
-  { referencia: "S1725814", data: "2026-10-13", item: "SISTEMA_LICITACAO", sala: "FORUM_DESEMBARGADOR_MIGUEL_SEABRA_FAGUNDES-2_VARA_CRIMINAL", nome: "Domicio Jose Alves Cordeiro" },
-  { referencia: "S1725835", data: "2026-10-13", item: "SISTEMA_LICITACAO", sala: "FORUM_DESEMBARGADOR_MIGUEL_SEABRA_FAGUNDES-10_VARA_CRIMINAL", nome: "Andreza Ferreira Araújo Marinho" },
-  { referencia: "S1725852", data: "2026-10-13", item: "SISBAJUD", sala: "FÓRUM_DA_COMARCA_DE_PENDÊNCIAS-VARA_UNICA", nome: "Francisco Michard da Silva Medeiros" },
-  { referencia: "S1725879", data: "2026-10-13", item: "INFOJUD", sala: "FÓRUM_DA_COMARCA_DE_MOSSORÓ-4_JUIZADO_ESPECIAL_CIVEL_CRIMINAL_E_DA_FAZENDA_PUBLICA", nome: "VALMIR GODEIRO CARLOS FILHO" },
-  { referencia: "1045395", data: "2026-10-13", item: "MICROSOFT AUTHENTICATOR", sala: "EXTERNOS-OAB", nome: "Victoria Soares Siqueira" }
-];
-
-const normalizedDefaultData = defaultData.map(item => ({ ...item, forum: normalizeForumName(item.sala) }));
-let rawData = [...normalizedDefaultData];
-let filteredData = [...normalizedDefaultData];
+let rawData = [];
+let filteredData = [];
 let lineChartInstance = null;
 let donutChartInstance = null;
 let locationChartInstance = null;
@@ -54,20 +33,43 @@ document.addEventListener("DOMContentLoaded", () => {
   updateActiveNav();
 
   const sidebarToggle = document.getElementById("btn-toggle-sidebar");
-  sidebarToggle.addEventListener("click", () => {
-    const isCollapsed = sidebar.classList.toggle("collapsed");
-    const label = isCollapsed ? "Expandir menu lateral" : "Recolher menu lateral";
-    sidebarToggle.setAttribute("aria-expanded", String(!isCollapsed));
+  const mobileMenuQuery = window.matchMedia("(max-width: 768px)");
+  const exportDialog = document.getElementById("export-dialog");
+
+  function updateSidebarToggle() {
+    const isMobile = mobileMenuQuery.matches;
+    const isOpen = isMobile
+      ? sidebar.classList.contains("mobile-menu-open")
+      : !sidebar.classList.contains("collapsed");
+    const label = isMobile
+      ? (isOpen ? "Fechar menu lateral" : "Abrir menu lateral")
+      : (isOpen ? "Recolher menu lateral" : "Expandir menu lateral");
+
+    sidebarToggle.setAttribute("aria-expanded", String(isOpen));
     sidebarToggle.setAttribute("aria-label", label);
     sidebarToggle.title = label;
+  }
+
+  sidebarToggle.addEventListener("click", () => {
+    if (mobileMenuQuery.matches) {
+      sidebar.classList.toggle("mobile-menu-open");
+    } else {
+      sidebar.classList.toggle("collapsed");
+    }
+    updateSidebarToggle();
   });
+  mobileMenuQuery.addEventListener("change", () => {
+    sidebar.classList.remove("mobile-menu-open");
+    updateSidebarToggle();
+  });
+  updateSidebarToggle();
 
   localStorage.removeItem("agile_sheet_url");
   setInitialDateRange(rawData);
   populateDropdowns();
   renderDashboard();
   if (GOOGLE_SHEET_ID) {
-    fetchGoogleSheetData(true);
+    fetchGoogleSheetData();
   } else {
     hasInitializedDateRange = true;
   }
@@ -105,10 +107,14 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("filter-location").addEventListener("change", applyFilters);
   document.getElementById("btn-clear-filters").addEventListener("click", resetFilters);
 
-  document.getElementById("btn-load-sheet").addEventListener("click", () => fetchGoogleSheetData(false));
-
-  document.getElementById("btn-export-excel").addEventListener("click", exportToExcel);
-  document.getElementById("btn-export-pdf").addEventListener("click", exportToPDF);
+  document.getElementById("btn-open-export-dialog").addEventListener("click", () => exportDialog.showModal());
+  document.getElementById("btn-close-export-dialog").addEventListener("click", () => exportDialog.close());
+  document.getElementById("btn-export-excel").addEventListener("click", () => {
+    if (exportToExcel()) exportDialog.close();
+  });
+  document.getElementById("btn-export-pdf").addEventListener("click", () => {
+    if (exportToPDF()) exportDialog.close();
+  });
   document.querySelectorAll(".table-sort-button").forEach(button => {
     button.addEventListener("click", () => {
       if (tableSort.key === button.dataset.sortKey) {
@@ -124,49 +130,38 @@ document.addEventListener("DOMContentLoaded", () => {
   updateTableSortControls();
 
   setInterval(() => {
-    if (GOOGLE_SHEET_ID) fetchGoogleSheetData(true);
+    if (GOOGLE_SHEET_ID) fetchGoogleSheetData();
   }, 30000);
 });
 
-async function fetchGoogleSheetData(isSilent = false) {
+async function fetchGoogleSheetData() {
   const csvUrl = getGoogleSheetCsvUrl(GOOGLE_SHEET_ID);
   if (!csvUrl) {
-    document.getElementById("sync-text").innerText = "URL da planilha inválida";
-    if (!isSilent) alert("O ID configurado para a planilha é inválido.");
+    console.error("O ID configurado para a planilha é inválido.");
     return;
   }
 
   try {
-    if (!isSilent) document.getElementById("sync-text").innerText = "Sincronizando...";
     const response = await fetch(csvUrl);
     if (!response.ok) throw new Error("Erro ao acessar a planilha.");
     
     const csvText = await response.text();
     const parsed = parseCSV(csvText);
 
-    if (parsed.length > 0) {
-      const shouldInitializeDateRange = !hasInitializedDateRange;
-      const dataChanged = !areDataRowsEqual(rawData, parsed);
-      if (dataChanged) {
-        rawData = parsed;
-        populateDropdowns();
-      }
-
-      if (!hasInitializedDateRange) {
-        hasInitializedDateRange = setInitialDateRange(parsed);
-      }
-
-      if (dataChanged || (shouldInitializeDateRange && hasInitializedDateRange)) applyFilters(true);
+    const shouldInitializeDateRange = !hasInitializedDateRange;
+    const dataChanged = !areDataRowsEqual(rawData, parsed);
+    if (dataChanged) {
+      rawData = parsed;
+      populateDropdowns();
     }
-    
-    if (!isSilent) {
-      document.getElementById("sync-text").innerText = "Atualizado com Sucesso";
-      setTimeout(() => document.getElementById("sync-text").innerText = "Conectado à Planilha", 3000);
+
+    if (!hasInitializedDateRange) {
+      hasInitializedDateRange = setInitialDateRange(parsed);
     }
+
+    if (dataChanged || (shouldInitializeDateRange && hasInitializedDateRange)) applyFilters(true);
   } catch (err) {
     console.error(err);
-    if (!isSilent) alert("Falha ao carregar os dados. Verifique se a planilha está configurada como 'Qualquer pessoa com o link pode ver' (Modo Leitor).");
-    document.getElementById("sync-text").innerText = "Erro na Conexão";
   }
 }
 
@@ -770,15 +765,23 @@ function renderCharts(animateCharts = false) {
 
 }
 
-function exportToExcel() {
+function getExportDateRange() {
   const startInput = document.getElementById("date-start").value;
   const endInput = document.getElementById("date-end").value;
 
   if (!startInput || !endInput) {
     alert("Por favor, preencha a Data Inicial e a Data Final no filtro antes de gerar o relatório.");
-    return;
+    return null;
   }
 
+  return { startInput, endInput };
+}
+
+function exportToExcel() {
+  const dateRange = getExportDateRange();
+  if (!dateRange) return false;
+
+  const { startInput, endInput } = dateRange;
   const startDate = startInput.split('-').reverse().join('/');
   const endDate = endInput.split('-').reverse().join('/');
 
@@ -798,23 +801,20 @@ function exportToExcel() {
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Atendimentos");
   XLSX.writeFile(workbook, `atendimentos_agile_${startInput}_a_${endInput}.xlsx`);
+  return true;
 }
 
 function exportToPDF() {
-  const startInput = document.getElementById("date-start").value;
-  const endInput = document.getElementById("date-end").value;
+  const dateRange = getExportDateRange();
+  if (!dateRange) return false;
 
-  if (!startInput || !endInput) {
-    alert("Por favor, preencha a Data Inicial e a Data Final no filtro antes de gerar o relatório.");
-    return;
-  }
-
+  const { startInput, endInput } = dateRange;
   const startDate = startInput.split('-').reverse().join('/');
   const endDate = endInput.split('-').reverse().join('/');
   const JsPDF = window.jspdf && window.jspdf.jsPDF;
   if (!JsPDF) {
     alert("Não foi possível carregar a biblioteca necessária para gerar o PDF. Atualize a página e tente novamente.");
-    return;
+    return false;
   }
 
   const pdf = new JsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
@@ -945,4 +945,5 @@ function exportToPDF() {
   }
 
   pdf.save(`relatorio_atendimentos_${startInput}_a_${endInput}.pdf`);
+  return true;
 }

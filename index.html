@@ -28,18 +28,12 @@
         </button>
       </div>
       <nav class="nav-menu" id="sidebar-nav">
-        <a href="#" class="active" aria-current="page"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a>
+        <a href="#" class="active" aria-current="page"><i data-lucide="layout-dashboard"></i><span>Painel</span></a>
         <a href="#tabela-sec"><i data-lucide="clipboard-list"></i><span>Tabela</span></a>
-      </nav>
-      <div class="sidebar-footer">
-        <div class="sync-status">
-          <span class="pulse-dot"></span>
-          <span id="sync-text">Conectado à Planilha</span>
-        </div>
-        <button id="btn-load-sheet" class="btn-primary sidebar-sync-button" type="button" aria-label="Sincronizar planilha" title="Sincronizar planilha">
-          <i data-lucide="refresh-cw"></i><span>Sincronizar</span>
+        <button id="btn-open-export-dialog" class="nav-menu-action" type="button" aria-haspopup="dialog" aria-controls="export-dialog">
+          <i data-lucide="download"></i><span>Exportar tabela</span>
         </button>
-      </div>
+      </nav>
     </aside>
 
     <!-- Conteúdo Principal -->
@@ -48,7 +42,7 @@
       <header class="top-header">
         <div class="title-area">
           <p class="department-name">Coordenadoria de Apoio à Área de Tecnologia</p>
-          <h1>Dashboard de Atendimentos</h1>
+          <h1>Painel de Atendimentos</h1>
         </div>
       </header>
 
@@ -78,10 +72,6 @@
           <button id="btn-clear-filters" class="btn-secondary" type="button" aria-label="Limpar filtros" title="Limpar Filtros"><i data-lucide="filter-x"></i></button>
         </div>
 
-        <div class="actions-group">
-          <button id="btn-export-excel" class="btn-export excel"><i data-lucide="file-spreadsheet"></i> Excel</button>
-          <button id="btn-export-pdf" class="btn-export pdf"><i data-lucide="file-text"></i> PDF</button>
-        </div>
       </section>
 
       <!-- KPI Cards -->
@@ -117,6 +107,7 @@
           </div>
           <div class="kpi-icon"><i data-lucide="users"></i></div>
         </div>
+
       </section>
 
       <!-- Gráficos de Linha e Donut -->
@@ -184,6 +175,20 @@
       </section>
     </main>
   </div>
+
+  <dialog id="export-dialog" class="export-dialog" aria-labelledby="export-dialog-title" aria-describedby="export-dialog-description">
+    <div class="export-dialog-header">
+      <h2 id="export-dialog-title">Exportar tabela</h2>
+      <button id="btn-close-export-dialog" class="export-dialog-close" type="button" aria-label="Fechar">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <p id="export-dialog-description" class="export-dialog-description">O arquivo com os registros filtrados será baixado. Escolha o formato:</p>
+    <div class="export-dialog-actions">
+      <button id="btn-export-pdf" class="btn-export pdf" type="button"><i data-lucide="file-text"></i> PDF</button>
+      <button id="btn-export-excel" class="btn-export excel" type="button"><i data-lucide="file-spreadsheet"></i> Excel</button>
+    </div>
+  </dialog>
 
   <script defer src="script.js?v=hidden-sheet-id-20261113"></script>
 </body>
