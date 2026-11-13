@@ -694,8 +694,21 @@ tr:hover { background-color: #f1f5f9; }
   .nav-menu-action,
   .sidebar.collapsed .nav-menu-action {
     flex: 1;
+    min-width: 0;
+    flex-direction: column;
     justify-content: center;
-    padding: 10px 12px;
+    gap: 4px;
+    padding: 8px 4px;
+    text-align: center;
+  }
+
+  .nav-menu a span,
+  .nav-menu-action span {
+    min-width: 0;
+    overflow: visible;
+    text-align: center;
+    text-overflow: clip;
+    white-space: normal;
   }
 
   .sidebar.collapsed .nav-menu a span,
@@ -781,6 +794,20 @@ tr:hover { background-color: #f1f5f9; }
   .sidebar,
   .sidebar.collapsed {
     padding: 10px 12px;
+  }
+
+  .sidebar .nav-menu a,
+  .sidebar .nav-menu-action,
+  .sidebar.collapsed .nav-menu a,
+  .sidebar.collapsed .nav-menu-action {
+    flex: 1;
+  }
+
+  .sidebar .nav-menu a span,
+  .sidebar .nav-menu-action span,
+  .sidebar.collapsed .nav-menu a span,
+  .sidebar.collapsed .nav-menu-action span {
+    display: none;
   }
 
   .main-content {
